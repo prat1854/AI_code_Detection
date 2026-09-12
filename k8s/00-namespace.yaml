@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: codeguard
+  labels:
+    app.kubernetes.io/name: codeguard-ai
+    app.kubernetes.io/part-of: codeguard-platform

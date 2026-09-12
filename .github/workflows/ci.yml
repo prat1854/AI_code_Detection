@@ -1,0 +1,114 @@
+name: CodeGuard CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend-checks:
+    name: Backend Lint & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Run Backend Unit & Integration Tests
+        run: |
+          cd backend
+          npm test
+
+  ai-service-checks:
+    name: AI Service Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv Package Manager
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install Dependencies & Run Pytest
+        run: |
+          cd ai-service
+          uv venv
+          uv pip install fastapi "uvicorn[standard]" pydantic httpx python-dotenv pytest pytest-asyncio
+          export PYTHONPATH=.
+          .venv/bin/pytest tests
+
+  frontend-checks:
+    name: Frontend Build & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Compile TypeScript & Build Production Bundle
+        run: |
+          cd frontend
+          npm run build
+
+  docker-build-verification:
+    name: Docker Image Build & Sanity Check
+    needs: [backend-checks, ai-service-checks, frontend-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.backend
+          push: false
+          tags: codeguard/backend:test
+
+      - name: Build AI Service Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.ai
+          push: false
+          tags: codeguard/ai-service:test
+
+      - name: Build Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.frontend
+          push: false
+          tags: codeguard/frontend:test

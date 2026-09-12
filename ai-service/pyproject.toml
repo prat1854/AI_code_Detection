@@ -1,0 +1,18 @@
+[project]
+name = "codeguard-ai-service"
+version = "1.0.0"
+description = "CodeGuard AI - Modular Python AI Service for Code Explanation, Review, and Fix Generation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.9.2",
+    "httpx>=0.27.2",
+    "python-dotenv>=1.0.1",
+    "pytest>=8.3.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
